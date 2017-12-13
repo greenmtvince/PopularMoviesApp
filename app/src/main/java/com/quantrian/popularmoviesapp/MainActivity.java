@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.support.v7.app.AppCompatActivity;
@@ -19,6 +21,8 @@ import android.view.View;
 import android.widget.Toast;
 
 import com.quantrian.popularmoviesapp.adapters.PosterAdapter;
+import com.quantrian.popularmoviesapp.data.MovieContract;
+import com.quantrian.popularmoviesapp.data.MovieDbHelper;
 import com.quantrian.popularmoviesapp.models.Movie;
 import com.quantrian.popularmoviesapp.data.SettingsActivity;
 import com.quantrian.popularmoviesapp.utils.FetchMovies;
@@ -30,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     private String sortBy;
     private ArrayList<Movie> movieList;
     private RecyclerView mRecyclerView;
+
+    private SQLiteDatabase mDb;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,6 +54,10 @@ public class MainActivity extends AppCompatActivity {
         //Quick call to shared preferences to determine whether we're sorting by highest rated or most popular
         setupSharedPreferences();
 
+        //Initialize the SQLite Database
+        MovieDbHelper dbHelper = new MovieDbHelper(this);
+        mDb = dbHelper.getWritableDatabase();
+
 
         RecyclerView.LayoutManager layoutManager = new GridLayoutManager(getApplicationContext(),spanCount);
         mRecyclerView.setLayoutManager(layoutManager);
@@ -57,9 +67,12 @@ public class MainActivity extends AppCompatActivity {
         //we do it loads from that.  Otherwise we make a network call.
         if (savedInstanceState!=null) {
             movieList = savedInstanceState.getParcelableArrayList(MOVIELIST_KEY);
-            if (movieList!=null) {
+            if (movieList != null) {
                 setAdapter();
             }
+        }else if (sortBy.equals(getString(R.string.pref_sort_value_favorites))){
+            movieList = getAllFavorites();
+            setAdapter();
         } else {
             loadMovieData(this);
         }
@@ -71,6 +84,15 @@ public class MainActivity extends AppCompatActivity {
         super.onSaveInstanceState(outstate);
         if (movieList!=null)
             outstate.putParcelableArrayList(MOVIELIST_KEY,movieList);
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        if (sortBy.equals(getString(R.string.pref_sort_value_favorites))) {
+            movieList = getAllFavorites();
+            setAdapter();
+        }
     }
 
     //Checks to see if we're connected to the internet and if so calls the AsyncTask
@@ -140,5 +162,44 @@ public class MainActivity extends AppCompatActivity {
             movieList = result;
             setAdapter();
         }
+    }
+
+    private ArrayList<Movie> getAllFavorites(){
+        Cursor c = mDb.query(MovieContract.MovieEntry.TABLE_NAME,null, null, null, null,null,MovieContract.MovieEntry.COLUMN_POPULARITY);
+        //c.getCount()
+        //c.moveToFirst();
+        ArrayList<Movie> favMovies = new ArrayList<>();
+
+        if(c.moveToFirst()){
+          while (!c.isAfterLast()){
+              String title = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE));
+              String id = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_ID));
+              String url = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_URL));
+              String synopsis = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_SYNOPSIS));
+              Float popularity = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_POPULARITY));
+              Float rating = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RATING));
+              String date = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_DATE));
+
+              Movie m = new Movie(title,url,synopsis,popularity.toString(),rating.toString(),date,id);
+              m.favorite = true;
+              favMovies.add(m);
+              c.moveToNext();
+          }
+        }
+        /*for (int i=0; i<c.getCount();i++){
+            String title = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE));
+            String id = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_ID));
+            String url = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_URL));
+            String synopsis = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_SYNOPSIS));
+            Float popularity = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_POPULARITY));
+            Float rating = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RATING));
+            String date = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_DATE));
+
+            Movie m = new Movie(title,url,synopsis,popularity.toString(),rating.toString(),date,id);
+            m.favorite = true;
+            favMovies.add(m);
+            c.moveToNext();
+        }*/
+        return  favMovies;
     }
 }

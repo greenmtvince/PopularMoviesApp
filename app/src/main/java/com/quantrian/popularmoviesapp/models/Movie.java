@@ -47,6 +47,7 @@ public class Movie implements Parcelable {
         parcel.writeFloat(popularityScore);
         parcel.writeString(releaseDate);
         parcel.writeString(id);
+        parcel.writeByte((byte) (favorite?1:0));
     }
 
     //Build from a Parcel
@@ -58,6 +59,7 @@ public class Movie implements Parcelable {
         popularityScore = in.readFloat();
         releaseDate = in.readString();
         id = in.readString();
+        favorite = in.readByte() !=0;
     }
 
     //I don't quite get the purpose of the CREATOR

@@ -1,8 +1,11 @@
 package com.quantrian.popularmoviesapp;
 
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -14,6 +17,7 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -22,6 +26,8 @@ import android.widget.Toast;
 import com.quantrian.popularmoviesapp.adapters.PosterAdapter;
 import com.quantrian.popularmoviesapp.adapters.ReviewAdapter;
 import com.quantrian.popularmoviesapp.adapters.TrailerAdapter;
+import com.quantrian.popularmoviesapp.data.MovieContract;
+import com.quantrian.popularmoviesapp.data.MovieDbHelper;
 import com.quantrian.popularmoviesapp.models.Movie;
 import com.quantrian.popularmoviesapp.models.Review;
 import com.quantrian.popularmoviesapp.models.Trailer;
@@ -32,7 +38,7 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 
 public class MovieDetail extends AppCompatActivity {
-    private String movieID;
+    private Movie movie;
     private TextView tv_MovieTitle;
     private ImageView iv_MoviePoster;
     private ProgressBar pb_MovieRating;
@@ -43,6 +49,8 @@ public class MovieDetail extends AppCompatActivity {
     private RecyclerView rv_reviews;
     private ArrayList<Trailer> trailerList;
     private ArrayList<Review> reviewList;
+    private SQLiteDatabase mDb;
+    private Button btn;
 
     //Very straightforward.  Take the data and populate the fields.
     @Override
@@ -58,8 +66,18 @@ public class MovieDetail extends AppCompatActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        Movie movie = getIntent().getParcelableExtra("MOVIE");
-        movieID = movie.id;
+        //Initialize the SQLite Database
+        MovieDbHelper dbHelper = new MovieDbHelper(this);
+        mDb = dbHelper.getWritableDatabase();
+
+
+
+
+        movie = getIntent().getParcelableExtra("MOVIE");
+
+        if(findMovie(movie.id)>0)
+            movie.favorite=true;
+
         mRecyclerView = findViewById(R.id.rv_trailers);
         rv_reviews = findViewById(R.id.rv_reviews);
         tv_MovieTitle = (TextView) findViewById(R.id.MovieTitle);
@@ -68,6 +86,10 @@ public class MovieDetail extends AppCompatActivity {
         tv_MovieRating = findViewById(R.id.tv_user_rating);
         tv_releaseDate = findViewById(R.id.tv_release_date);
         tv_synopsis = findViewById(R.id.tv_synopsis);
+        btn = findViewById(R.id.btn_favorite);
+
+        if (movie.favorite)
+            btn.setText("Unfavorite");
 
         tv_MovieTitle.setText(movie.originalTitle);
         Picasso.with(this).load(movie.moviePosterImageURL).into(iv_MoviePoster);
@@ -75,6 +97,8 @@ public class MovieDetail extends AppCompatActivity {
         tv_MovieRating.setText(movie.rating.toString());
         tv_releaseDate.setText(movie.releaseDate);
         tv_synopsis.setText(movie.synopsis);
+
+
 
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.HORIZONTAL, false);
         RecyclerView.LayoutManager reviewLayoutMgr = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.VERTICAL,false);
@@ -94,8 +118,8 @@ public class MovieDetail extends AppCompatActivity {
         if(isConnected) {
             //new MainActivity.FetchMovies().execute(sortBy);
             //loadFakeTrailerData();
-            new FetchTrailers(this, new FetchTrailerTaskCompleteListener()).execute(movieID+"/trailers");
-            new FetchReviews(this, new FetchReviewTaskCompleteListener()).execute(movieID+"/reviews");
+            new FetchTrailers(this, new FetchTrailerTaskCompleteListener()).execute(movie.id+"/trailers");
+            new FetchReviews(this, new FetchReviewTaskCompleteListener()).execute(movie.id+"/reviews");
 
             Toast.makeText(this, "I got here!",Toast.LENGTH_LONG).show();
 
@@ -132,6 +156,58 @@ public class MovieDetail extends AppCompatActivity {
         } catch (ActivityNotFoundException ex) {
             context.startActivity(webIntent);
         }
+    }
+
+    public void addToFavorites(View view){
+        movie.favorite = !movie.favorite;
+
+        String btnMsg;
+
+        Long idOut;
+        if (movie.favorite) {
+            btnMsg = "UnFavorite";
+            idOut = addNewMovie(movie);
+            Toast.makeText(this, "You inserted at: " +idOut.toString()+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
+        } else {
+            btnMsg = "Favorite";
+            idOut = findMovie(movie.id);
+            removeMovie(idOut);
+            Toast.makeText(this, "You removed at: " +idOut.toString()+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
+        }
+
+        btn.setText(btnMsg);
+
+    }
+
+    private long addNewMovie(Movie newMovie){
+        ContentValues cv = new ContentValues();
+
+        cv.put(MovieContract.MovieEntry.COLUMN_ID, newMovie.id);
+        cv.put(MovieContract.MovieEntry.COLUMN_DATE,newMovie.releaseDate);
+        cv.put(MovieContract.MovieEntry.COLUMN_FAVORITE, newMovie.favorite);
+        cv.put(MovieContract.MovieEntry.COLUMN_POPULARITY, newMovie.popularityScore);
+        cv.put(MovieContract.MovieEntry.COLUMN_RATING, newMovie.rating);
+        cv.put(MovieContract.MovieEntry.COLUMN_SYNOPSIS, newMovie.synopsis);
+        cv.put(MovieContract.MovieEntry.COLUMN_TITLE, newMovie.originalTitle);
+        cv.put(MovieContract.MovieEntry.COLUMN_URL, newMovie.moviePosterImageURL);
+
+        return mDb.insert(MovieContract.MovieEntry.TABLE_NAME,null,cv);
+    }
+
+    private long findMovie(String movieID){
+        Cursor c = mDb.rawQuery("SELECT * FROM "+MovieContract.MovieEntry.TABLE_NAME+
+                " WHERE "+MovieContract.MovieEntry.COLUMN_ID+" = "+movieID,null);
+            if (c.getCount()>0) {
+                c.moveToFirst();
+                return c.getLong(c.getColumnIndex(MovieContract.MovieEntry._ID));
+            }
+            else
+                return -1;
+
+    }
+
+    private boolean removeMovie(long id){
+        return mDb.delete(MovieContract.MovieEntry.TABLE_NAME, MovieContract.MovieEntry._ID+"="+id,null)>0;
     }
 
     public class FetchReviewTaskCompleteListener implements AsyncTaskCompleteListener<ArrayList<Review>>{

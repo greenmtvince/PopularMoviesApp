@@ -11,7 +11,17 @@
         android:layout_height="wrap_content"
         >
 
-
+        <ImageView
+            android:id="@+id/imageViewPoster"
+            android:layout_width="185dp"
+            android:layout_height="178dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="16dp"
+            android:adjustViewBounds="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
 
         <TextView
@@ -28,17 +38,20 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/imageViewPoster" />
 
-        <ImageView
-            android:id="@+id/imageViewPoster"
-            android:layout_width="185dp"
-            android:layout_height="178dp"
+        <Button
+            android:id="@+id/btn_favorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="16dp"
-            android:adjustViewBounds="true"
+            android:layout_marginTop="8dp"
+            android:onClick="addToFavorites"
+            android:text="Favorite"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintTop_toBottomOf="@+id/MovieTitle" />
+
+
 
         <ProgressBar
             android:id="@+id/pb_user_rating"
@@ -77,11 +90,11 @@
         <TextView
             android:id="@+id/lbl_release_date"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="19dp"
             android:layout_marginTop="8dp"
             android:text="@string/label_release_date"
             app:layout_constraintStart_toStartOf="@+id/MovieTitle"
-            app:layout_constraintTop_toBottomOf="@+id/MovieTitle" />
+            app:layout_constraintTop_toBottomOf="@+id/btn_favorite" />
 
         <TextView
             android:id="@+id/tv_release_date"
@@ -149,6 +162,8 @@
             app:layout_constraintEnd_toEndOf="parent"
 
             />
+
+
 
     </android.support.constraint.ConstraintLayout>
 </ScrollView>

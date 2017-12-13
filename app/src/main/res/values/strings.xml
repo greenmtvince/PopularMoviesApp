@@ -11,6 +11,8 @@
     <string name="pref_sort_key" translatable="false">sortBy</string>
     <string name="pref_sort_lbl_rating">Highest User Rating</string>
     <string name="pref_sort_lbl_popular">Most Popular</string>
+    <string name="pref_sort_lbl_favorites">My Favorites</string>
     <string name="pref_sort_value_rating" translatable="false">top_rated</string>
     <string name="pref_sort_value_popular" translatable="false">popular</string>
+    <string name="pref_sort_value_favorites" translatable="false">favorites</string>
 </resources>
