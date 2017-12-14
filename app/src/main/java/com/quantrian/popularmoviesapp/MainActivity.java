@@ -8,6 +8,8 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.preference.PreferenceManager;
@@ -29,20 +31,20 @@ import com.quantrian.popularmoviesapp.utils.FetchMovies;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements android.support.v4.app.LoaderManager.LoaderCallbacks<Cursor> {
     private static final String MOVIELIST_KEY = "movielist";
     private String sortBy;
     private ArrayList<Movie> movieList;
     private RecyclerView mRecyclerView;
 
-    private SQLiteDatabase mDb;
+    //private SQLiteDatabase mDb;
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mRecyclerView = findViewById(R.id.main_recycler_view);
-        //movieList = new ArrayList<>();
 
         //Make the layout adaptable to landscape or portrait.
         //I should do an additional check for larger screen formats and allocate more columns.
@@ -51,28 +53,32 @@ public class MainActivity extends AppCompatActivity {
             spanCount=2;
         else
             spanCount=3;
-        //Quick call to shared preferences to determine whether we're sorting by highest rated or most popular
+
+        //Quick call to shared preferences to determine whether we're sorting by highest rated,
+        // most popular, or favorites.
         setupSharedPreferences();
 
         //Initialize the SQLite Database
-        MovieDbHelper dbHelper = new MovieDbHelper(this);
-        mDb = dbHelper.getWritableDatabase();
+        //MovieDbHelper dbHelper = new MovieDbHelper(this);
+        //mDb = dbHelper.getWritableDatabase();
 
-
+        //Initialize our RecyclerView
         RecyclerView.LayoutManager layoutManager = new GridLayoutManager(getApplicationContext(),spanCount);
         mRecyclerView.setLayoutManager(layoutManager);
 
         //This saves a network call if we're just flipping orientation.
         //Basically it checks if we have a saved instance state which is the movie list and if
-        //we do it loads from that.  Otherwise we make a network call.
+        //we do it loads from that.
+        // OR If we're retrieving favorites, we just pull it from the local store
+        // Otherwise we make a network call.
         if (savedInstanceState!=null) {
             movieList = savedInstanceState.getParcelableArrayList(MOVIELIST_KEY);
             if (movieList != null) {
                 setAdapter();
             }
         }else if (sortBy.equals(getString(R.string.pref_sort_value_favorites))){
-            movieList = getAllFavorites();
-            setAdapter();
+            //Get our favorite movies from the content provider
+            getSupportLoaderManager().initLoader(0,null, this);
         } else {
             loadMovieData(this);
         }
@@ -86,12 +92,18 @@ public class MainActivity extends AppCompatActivity {
             outstate.putParcelableArrayList(MOVIELIST_KEY,movieList);
     }
 
+    //Handles if the user navigates to this screen by back button rather than
+    //the menu bar icon.  We check to see if the preferences have changed, and either reload
+    //the favorites to reflect any changes to the local store, OR reload the list from the network
     @Override
     public void onResume(){
         super.onResume();
+
+        setupSharedPreferences();
         if (sortBy.equals(getString(R.string.pref_sort_value_favorites))) {
-            movieList = getAllFavorites();
-            setAdapter();
+            getSupportLoaderManager().restartLoader(0,null, this);
+        } else {
+            loadMovieData(this);
         }
     }
 
@@ -106,7 +118,6 @@ public class MainActivity extends AppCompatActivity {
                 activeNetwork.isConnectedOrConnecting();
         if (isConnected){
             new FetchMovies(this, new FetchMovieTaskCompleteListener()).execute(sortBy);
-
         } else {
             Toast.makeText(this, "Not Connected to the internet",
                     Toast.LENGTH_LONG).show();
@@ -156,6 +167,63 @@ public class MainActivity extends AppCompatActivity {
         //Log.d("PREFFOES", "setupSharedPreferences: "+sortBy);
     }
 
+    //This code is modified from ud851-Lesson09 to-do-list
+    //Should I be concerned about the IDE flag for memory leak?
+    @Override
+    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
+        return  new AsyncTaskLoader<Cursor>(this) {
+            Cursor mTaskData=null;
+
+            //Code from ud851-Lesson09-To_do-List
+            @Override
+            protected void onStartLoading() {
+                if (mTaskData != null) {
+                    // Delivers any previously loaded data immediately
+                    deliverResult(mTaskData);
+                } else {
+                    // Force a new load
+                    forceLoad();
+                }
+            }
+
+            @Override
+            public Cursor loadInBackground() {
+                Log.d("ASYNCLOAD", "Starting loadInBackground");
+                try{
+                    return getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
+                            null,
+                            null,
+                            null,
+                            MovieContract.MovieEntry.COLUMN_RATING);
+                } catch (Exception e){
+                    Log.e(TAG, "Failed to Asynchronously Load Data.");
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+
+            public void deliverResult(Cursor data){
+                Integer result = data.getCount();
+                Log.d("ASYNCLOAD", "The cursor has "+result.toString()+" items in it");
+                mTaskData = data;
+                super.deliverResult(data);
+            }
+        };
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        movieList = getAllFavorites(data);
+        setAdapter();
+    }
+
+    //TODO Need to resolve this?
+    //I feel like I should add some code here, but I'm not sure what.
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+
+    }
+
     public class FetchMovieTaskCompleteListener implements MovieDetail.AsyncTaskCompleteListener<ArrayList<Movie>> {
         @Override
         public void onTaskComplete(ArrayList<Movie> result){
@@ -164,10 +232,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private ArrayList<Movie> getAllFavorites(){
-        Cursor c = mDb.query(MovieContract.MovieEntry.TABLE_NAME,null, null, null, null,null,MovieContract.MovieEntry.COLUMN_POPULARITY);
-        //c.getCount()
-        //c.moveToFirst();
+    //Gets all the users favorite movies for use in the adapter.
+    private ArrayList<Movie> getAllFavorites(Cursor c){
         ArrayList<Movie> favMovies = new ArrayList<>();
 
         if(c.moveToFirst()){
@@ -186,20 +252,6 @@ public class MainActivity extends AppCompatActivity {
               c.moveToNext();
           }
         }
-        /*for (int i=0; i<c.getCount();i++){
-            String title = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE));
-            String id = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_ID));
-            String url = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_URL));
-            String synopsis = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_SYNOPSIS));
-            Float popularity = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_POPULARITY));
-            Float rating = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RATING));
-            String date = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_DATE));
-
-            Movie m = new Movie(title,url,synopsis,popularity.toString(),rating.toString(),date,id);
-            m.favorite = true;
-            favMovies.add(m);
-            c.moveToNext();
-        }*/
         return  favMovies;
     }
 }

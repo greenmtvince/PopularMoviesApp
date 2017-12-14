@@ -33,5 +33,9 @@
                 android:value=".MainActivity"
                 android:name="android.support.PARENT_ACTIVITY"/>
         </activity>
+        <provider
+            android:authorities="com.quantrian.popularmoviesapp"
+            android:name=".data.MovieContentProvider"
+            android:exported="false"/>
     </application>
 </manifest>

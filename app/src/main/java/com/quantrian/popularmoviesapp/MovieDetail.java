@@ -166,8 +166,8 @@ public class MovieDetail extends AppCompatActivity {
         Long idOut;
         if (movie.favorite) {
             btnMsg = "UnFavorite";
-            idOut = addNewMovie(movie);
-            Toast.makeText(this, "You inserted at: " +idOut.toString()+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
+            String bob = addNewMovie(movie);
+            Toast.makeText(this, "You inserted at: " +bob+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
         } else {
             btnMsg = "Favorite";
             idOut = findMovie(movie.id);
@@ -179,7 +179,7 @@ public class MovieDetail extends AppCompatActivity {
 
     }
 
-    private long addNewMovie(Movie newMovie){
+    private String addNewMovie(Movie newMovie){
         ContentValues cv = new ContentValues();
 
         cv.put(MovieContract.MovieEntry.COLUMN_ID, newMovie.id);
@@ -191,7 +191,15 @@ public class MovieDetail extends AppCompatActivity {
         cv.put(MovieContract.MovieEntry.COLUMN_TITLE, newMovie.originalTitle);
         cv.put(MovieContract.MovieEntry.COLUMN_URL, newMovie.moviePosterImageURL);
 
-        return mDb.insert(MovieContract.MovieEntry.TABLE_NAME,null,cv);
+        Uri uri = getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, cv);
+
+        if(uri !=null){
+            Toast.makeText(getBaseContext(), uri.toString(),Toast.LENGTH_SHORT).show();
+            return uri.toString();
+        } else
+            return "Didn't Work!";
+
+
     }
 
     private long findMovie(String movieID){
