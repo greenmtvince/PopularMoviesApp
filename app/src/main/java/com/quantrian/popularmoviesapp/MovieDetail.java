@@ -122,7 +122,7 @@ public class MovieDetail extends AppCompatActivity {
             new FetchTrailers(this, new FetchTrailerTaskCompleteListener()).execute(movie.id+"/trailers");
             new FetchReviews(this, new FetchReviewTaskCompleteListener()).execute(movie.id+"/reviews");
 
-            Toast.makeText(this, "I got here!",Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, "I got here!",Toast.LENGTH_LONG).show();
 
         }else {
             Toast.makeText(this, "Not Connected to the internet",
@@ -168,12 +168,12 @@ public class MovieDetail extends AppCompatActivity {
         if (movie.favorite) {
             btnMsg = "UnFavorite";
             String bob = addNewMovie(movie);
-            Toast.makeText(this, "You inserted at: " +bob+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "You inserted at: " +bob+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
         } else {
             btnMsg = "Favorite";
             //idOut = findMovie(movie.id);
             removeMovie(movie.id);
-            Toast.makeText(this, "You removed MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "You removed MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
         }
 
         btn.setText(btnMsg);
@@ -195,7 +195,7 @@ public class MovieDetail extends AppCompatActivity {
         Uri uri = getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, cv);
 
         if(uri !=null){
-            Toast.makeText(getBaseContext(), uri.toString(),Toast.LENGTH_SHORT).show();
+            //Toast.makeText(getBaseContext(), uri.toString(),Toast.LENGTH_SHORT).show();
             return uri.toString();
         } else
             return "Didn't Work!";
