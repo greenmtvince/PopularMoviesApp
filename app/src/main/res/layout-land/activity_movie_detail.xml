@@ -9,6 +9,16 @@
         android:layout_height="match_parent"
         tools:context="com.quantrian.popularmoviesapp.MovieDetail">
 
+        <ImageView
+            android:id="@+id/imageViewPoster"
+            android:layout_width="185dp"
+            android:layout_height="178dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginTop="8dp"
+            android:adjustViewBounds="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <TextView
             android:id="@+id/MovieTitle"
             android:layout_width="0dp"
@@ -19,26 +29,28 @@
             android:text="TextView"
             android:textAlignment="center"
             android:textAppearance="@style/TextAppearance.AppCompat.Display1"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="@+id/constraintLayout"
-            app:layout_constraintTop_toTopOf="@+id/constraintLayout" />
-
-        <ImageView
-            android:id="@+id/imageViewPoster"
-            android:layout_width="185dp"
-            android:layout_height="178dp"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="16dp"
-            android:adjustViewBounds="true"
+            app:layout_constraintEnd_toStartOf="@+id/imageViewPoster"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/btn_favorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:onClick="addToFavorites"
+            android:text="Favorite"
+            app:layout_constraintEnd_toEndOf="@+id/MovieTitle"
+            app:layout_constraintStart_toStartOf="@+id/MovieTitle"
+            app:layout_constraintTop_toBottomOf="@+id/MovieTitle" />
 
         <ProgressBar
             android:id="@+id/pb_user_rating"
             style="@style/Widget.AppCompat.ProgressBar.Horizontal"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:backgroundTint="@color/colorPrimaryDark"
             android:backgroundTintMode="screen"
             android:progress="50"
@@ -46,23 +58,26 @@
             android:scaleY="2"
             app:layout_constraintBottom_toBottomOf="@+id/lbl_Rating"
             app:layout_constraintStart_toEndOf="@+id/lbl_Rating"
-            app:layout_constraintTop_toTopOf="@+id/lbl_Rating" />
+            app:layout_constraintTop_toTopOf="@+id/lbl_Rating"
+            app:layout_constraintVertical_bias="0.0" />
 
         <TextView
             android:id="@+id/tv_user_rating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="4dp"
             android:text="TextView"
             app:layout_constraintBottom_toBottomOf="@+id/lbl_Rating"
             app:layout_constraintStart_toEndOf="@+id/pb_user_rating"
-            app:layout_constraintTop_toTopOf="@+id/lbl_Rating" />
+            app:layout_constraintTop_toTopOf="@+id/lbl_Rating"
+            app:layout_constraintVertical_bias="0.0" />
 
         <TextView
             android:id="@+id/lbl_Rating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="12dp"
             android:text="@string/label_rating"
             app:layout_constraintStart_toStartOf="@+id/lbl_release_date"
             app:layout_constraintTop_toBottomOf="@+id/lbl_release_date" />
@@ -71,45 +86,77 @@
             android:id="@+id/lbl_release_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:text="@string/label_release_date"
             app:layout_constraintStart_toStartOf="@+id/MovieTitle"
-            app:layout_constraintTop_toBottomOf="@+id/MovieTitle" />
+            app:layout_constraintTop_toBottomOf="@+id/btn_favorite" />
 
         <TextView
             android:id="@+id/tv_release_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="4dp"
             android:text="01-01-1970"
             app:layout_constraintBottom_toBottomOf="@+id/lbl_release_date"
             app:layout_constraintStart_toEndOf="@+id/lbl_release_date"
-            app:layout_constraintTop_toTopOf="@+id/lbl_release_date" />
+            app:layout_constraintTop_toTopOf="@+id/lbl_release_date"
+            app:layout_constraintVertical_bias="0.0" />
 
         <TextView
             android:id="@+id/tv_synopsis"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="TextView"
+            app:layout_constraintStart_toStartOf="@+id/lbl_Rating"
+            app:layout_constraintTop_toBottomOf="@+id/imageViewPoster" />
+
+        <TextView
+            android:id="@+id/tv_lbl_Trailers"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="8dp"
             android:layout_marginTop="8dp"
-            android:text="TextView"
-            app:layout_constraintEnd_toEndOf="@+id/constraintLayout"
-            app:layout_constraintStart_toStartOf="@+id/lbl_Rating"
-            app:layout_constraintTop_toBottomOf="@+id/lbl_Rating" />
-
-        <android.support.constraint.ConstraintLayout
-            android:id="@+id/constraintLayout"
-            android:layout_width="383dp"
-            android:layout_height="0dp"
-            android:layout_marginBottom="8dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginTop="16dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:text="Trailers"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/imageViewPoster"
-            app:layout_constraintTop_toTopOf="parent">
+            app:layout_constraintStart_toStartOf="@+id/tv_synopsis"
+            app:layout_constraintTop_toBottomOf="@+id/tv_synopsis" />
 
-        </android.support.constraint.ConstraintLayout>
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_trailers"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toStartOf="@id/tv_lbl_Trailers"
+            app:layout_constraintTop_toBottomOf="@id/tv_lbl_Trailers"
+            app:layout_constraintEnd_toEndOf="parent"
+
+            />
+
+        <TextView
+            android:id="@+id/tv_lbl_reviews"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:layout_marginTop="8dp"
+            android:text="Reviews"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/rv_trailers"
+            app:layout_constraintTop_toBottomOf="@+id/rv_trailers" />
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/rv_reviews"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintStart_toStartOf="@id/tv_lbl_reviews"
+            app:layout_constraintTop_toBottomOf="@id/tv_lbl_reviews"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:nestedScrollingEnabled="false"
+            />
+
     </android.support.constraint.ConstraintLayout>
 </ScrollView>

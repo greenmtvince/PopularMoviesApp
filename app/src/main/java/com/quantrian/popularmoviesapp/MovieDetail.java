@@ -16,6 +16,7 @@ import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -170,9 +171,9 @@ public class MovieDetail extends AppCompatActivity {
             Toast.makeText(this, "You inserted at: " +bob+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
         } else {
             btnMsg = "Favorite";
-            idOut = findMovie(movie.id);
-            removeMovie(idOut);
-            Toast.makeText(this, "You removed at: " +idOut.toString()+" MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
+            //idOut = findMovie(movie.id);
+            removeMovie(movie.id);
+            Toast.makeText(this, "You removed MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
         }
 
         btn.setText(btnMsg);
@@ -203,9 +204,19 @@ public class MovieDetail extends AppCompatActivity {
     }
 
     private long findMovie(String movieID){
-        Cursor c = mDb.rawQuery("SELECT * FROM "+MovieContract.MovieEntry.TABLE_NAME+
-                " WHERE "+MovieContract.MovieEntry.COLUMN_ID+" = "+movieID,null);
+        //Cursor c = mDb.rawQuery("SELECT * FROM "+MovieContract.MovieEntry.TABLE_NAME+
+        //        " WHERE "+MovieContract.MovieEntry.COLUMN_ID+" = "+movieID,null);
+        Uri myUri = MovieContract.MovieEntry.CONTENT_URI.buildUpon().appendPath(movieID).build();
+        Log.d("WTFROFLBBQ", "The Uri I built in findMovie is: "+myUri);
+
+        Cursor c = getContentResolver().query(
+                myUri,
+                null,
+                null,
+                null,
+                null);
             if (c.getCount()>0) {
+                Log.d("WTFROFLBBQ", "Cursor Count in findMovie is: "+c.getCount());
                 c.moveToFirst();
                 return c.getLong(c.getColumnIndex(MovieContract.MovieEntry._ID));
             }
@@ -214,8 +225,13 @@ public class MovieDetail extends AppCompatActivity {
 
     }
 
-    private boolean removeMovie(long id){
-        return mDb.delete(MovieContract.MovieEntry.TABLE_NAME, MovieContract.MovieEntry._ID+"="+id,null)>0;
+    private void removeMovie(String movieId){
+        Uri uri = MovieContract.MovieEntry.CONTENT_URI;
+        uri = uri.buildUpon().appendPath(movieId).build();
+
+        getContentResolver().delete(uri, null,null);
+
+        //return mDb.delete(MovieContract.MovieEntry.TABLE_NAME, MovieContract.MovieEntry._ID+"="+id,null)>0;
     }
 
     public class FetchReviewTaskCompleteListener implements AsyncTaskCompleteListener<ArrayList<Review>>{

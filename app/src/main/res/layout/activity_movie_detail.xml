@@ -152,6 +152,7 @@
             app:layout_constraintTop_toBottomOf="@+id/rv_trailers" />
 
         <android.support.v7.widget.RecyclerView
+            android:nestedScrollingEnabled="false"
             android:id="@+id/rv_reviews"
             android:layout_width="0dp"
             android:layout_height="wrap_content"

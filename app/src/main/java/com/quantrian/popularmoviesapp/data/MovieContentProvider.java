@@ -11,6 +11,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 /**
  * Created by Vinnie on 12/13/2017.
@@ -25,7 +26,7 @@ public class MovieContentProvider extends ContentProvider {
     public static UriMatcher buildUriMatcher(){
         UriMatcher uriMatcher = new UriMatcher(UriMatcher.NO_MATCH);
         uriMatcher.addURI(MovieContract.AUTHORITY,MovieContract.PATH_FAVORITES,FAVORITES);
-        uriMatcher.addURI(MovieContract.AUTHORITY,MovieContract.PATH_FAVORITES+"/#",FAVORITES);
+        uriMatcher.addURI(MovieContract.AUTHORITY,MovieContract.PATH_FAVORITES+"/#",FAVORITES_WITH_ID);
 
         return uriMatcher;
     }
@@ -50,6 +51,7 @@ public class MovieContentProvider extends ContentProvider {
         Cursor retCursor;
         switch (match){
             case FAVORITES:
+                Log.d("IDDQD", "I'm in FAVORITES");
                 retCursor = db.query(MovieContract.MovieEntry.TABLE_NAME,
                         projection,
                         selection,
@@ -59,8 +61,9 @@ public class MovieContentProvider extends ContentProvider {
                         sortOrder);
                 break;
             case FAVORITES_WITH_ID:
+                Log.d("IDDQD", "I'm in FAVORITES WITH ID");
                 String id = uri.getPathSegments().get(1);
-                String mSelection ="_id=?";
+                String mSelection ="id=?";
                 String[] mSelectionArgs = new String[]{id};
 
                 retCursor = db.query(MovieContract.MovieEntry.TABLE_NAME,
@@ -115,7 +118,26 @@ public class MovieContentProvider extends ContentProvider {
 
     @Override
     public int delete(@NonNull Uri uri, @Nullable String s, @Nullable String[] strings) {
-        return 0;
+        final SQLiteDatabase db = mMovieDbHelper.getWritableDatabase();
+
+        int match = sUriMatcher.match(uri);
+
+        int favoriteDeleted;
+
+        switch (match){
+            case FAVORITES_WITH_ID:
+                String id = uri.getPathSegments().get(1);
+                favoriteDeleted = db.delete(MovieContract.MovieEntry.TABLE_NAME, "id=?", new String[]{id});
+                break;
+            default:
+                throw new UnsupportedOperationException("Unknown uri: " +uri);
+        }
+
+        if (favoriteDeleted !=0) {
+            getContext().getContentResolver().notifyChange(uri,null);
+        }
+
+        return favoriteDeleted;
     }
 
     @Override
