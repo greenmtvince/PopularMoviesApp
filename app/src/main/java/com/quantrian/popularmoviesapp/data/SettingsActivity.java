@@ -9,7 +9,9 @@ import android.view.MenuItem;
 import com.quantrian.popularmoviesapp.R;
 
 
-//Code modified from the Udacity UD851 Lesson 6 Exercies
+//Code modified from the Udacity UD851 Lesson 6 Exercises
+//TODO Convert to BottomNavigationBar to improve UX
+//http://www.truiton.com/2017/01/android-bottom-navigation-bar-example/
 public class SettingsActivity extends AppCompatActivity {
 
     @Override

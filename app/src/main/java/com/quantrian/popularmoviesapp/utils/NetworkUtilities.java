@@ -47,6 +47,9 @@ public class NetworkUtilities {
 
 
     //Code comes directly from the Udacity UD851 Sunshine Example
+    //TODO Update this to use a 3rd party library like Retrofit
+    //http://square.github.io/retrofit/
+    //2x Reviewers have suggested better methods than the AsyncTask for network calls.
     public static String getResponseFromHttpUrl(URL url) throws IOException {
         HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
         try {

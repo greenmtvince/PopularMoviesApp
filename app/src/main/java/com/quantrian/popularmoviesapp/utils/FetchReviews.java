@@ -3,9 +3,7 @@ package com.quantrian.popularmoviesapp.utils;
 import android.content.Context;
 import android.os.AsyncTask;
 
-import com.quantrian.popularmoviesapp.MainActivity;
-import com.quantrian.popularmoviesapp.MovieDetail;
-import com.quantrian.popularmoviesapp.models.Movie;
+import com.quantrian.popularmoviesapp.MovieDetailActivity;
 import com.quantrian.popularmoviesapp.models.Review;
 
 import java.net.URL;
@@ -18,9 +16,9 @@ import java.util.ArrayList;
 public class FetchReviews extends AsyncTask<String, Void, ArrayList<Review> > {
     private static final String TAG = "FetchReviewsTask";
     private Context context;
-    private MovieDetail.AsyncTaskCompleteListener<ArrayList<Review>> listener;
+    private TaskCompleteListener<ArrayList<Review>> listener;
 
-    public FetchReviews(Context context, MovieDetail.AsyncTaskCompleteListener<ArrayList<Review>> listener){
+    public FetchReviews(Context context, TaskCompleteListener<ArrayList<Review>> listener){
         this.context = context;
         this.listener = listener;
     }

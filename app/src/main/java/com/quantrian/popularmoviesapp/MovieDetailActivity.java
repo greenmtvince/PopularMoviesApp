@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -30,11 +31,14 @@ import com.quantrian.popularmoviesapp.models.Review;
 import com.quantrian.popularmoviesapp.models.Trailer;
 import com.quantrian.popularmoviesapp.utils.FetchReviews;
 import com.quantrian.popularmoviesapp.utils.FetchTrailers;
+import com.quantrian.popularmoviesapp.utils.TaskCompleteListener;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
-public class MovieDetail extends AppCompatActivity {
+public class MovieDetailActivity extends AppCompatActivity {
+    private static final String SCROLL_POSITION = "scroll_position";
+
     private Movie movie;
     private TextView tv_MovieTitle;
     private ImageView iv_MoviePoster;
@@ -47,6 +51,8 @@ public class MovieDetail extends AppCompatActivity {
     private ArrayList<Trailer> trailerList;
     private ArrayList<Review> reviewList;
     private Button btn;
+    private ScrollView mScroll;
+    private int[] mPosition; //Holds the position of the scrollview
 
     //Very straightforward.  Take the data and populate the fields.
     @Override
@@ -69,6 +75,7 @@ public class MovieDetail extends AppCompatActivity {
 
         //Saw the suggestion to use Butterknife here.  I'll have to try that out for in the future
         //because it looks pretty handy for larger projects!
+        mScroll = findViewById(R.id.scrollViewDetail);
         mRecyclerView = findViewById(R.id.rv_trailers);
         rv_reviews = findViewById(R.id.rv_reviews);
         tv_MovieTitle = findViewById(R.id.MovieTitle);
@@ -98,7 +105,6 @@ public class MovieDetail extends AppCompatActivity {
         mRecyclerView.setLayoutManager(layoutManager);
         rv_reviews.setLayoutManager(reviewLayoutMgr);
         loadData(this);
-
     }
 
     private void loadData(Context context){
@@ -109,13 +115,8 @@ public class MovieDetail extends AppCompatActivity {
         boolean isConnected = activeNetwork != null &&
                 activeNetwork.isConnectedOrConnecting();
         if(isConnected) {
-            //new MainActivity.FetchMovies().execute(sortBy);
-            //loadFakeTrailerData();
             new FetchTrailers(this, new FetchTrailerTaskCompleteListener()).execute(movie.id+"/trailers");
             new FetchReviews(this, new FetchReviewTaskCompleteListener()).execute(movie.id+"/reviews");
-
-            //Toast.makeText(this, "I got here!",Toast.LENGTH_LONG).show();
-
         } else {
             Toast.makeText(this, R.string.toast_no_network,
                     Toast.LENGTH_LONG).show();
@@ -185,7 +186,6 @@ public class MovieDetail extends AppCompatActivity {
         Uri uri = getContentResolver().insert(MovieContract.MovieEntry.CONTENT_URI, cv);
 
         if(uri !=null){
-            //Toast.makeText(getBaseContext(), uri.toString(),Toast.LENGTH_SHORT).show();
             return uri.toString();
         } else
             return "Didn't Work!";
@@ -208,7 +208,6 @@ public class MovieDetail extends AppCompatActivity {
             }
             else
                 return -1;
-
     }
 
     private void removeMovie(String movieId){
@@ -217,24 +216,55 @@ public class MovieDetail extends AppCompatActivity {
         getContentResolver().delete(uri, null,null);
     }
 
-    public class FetchReviewTaskCompleteListener implements AsyncTaskCompleteListener<ArrayList<Review>>{
+    public class FetchReviewTaskCompleteListener implements TaskCompleteListener<ArrayList<Review>>{
         @Override
         public void onTaskComplete(ArrayList<Review> result) {
             reviewList = result;
             setAdapter();
+            setScrollPosition();
         }
     }
 
-    public class FetchTrailerTaskCompleteListener implements AsyncTaskCompleteListener<ArrayList<Trailer>>{
+    public class FetchTrailerTaskCompleteListener implements TaskCompleteListener<ArrayList<Trailer>> {
         @Override
         public void onTaskComplete(ArrayList<Trailer> result){
             trailerList = result;
             setAdapter();
+            setScrollPosition();
         }
     }
 
-    public interface AsyncTaskCompleteListener<T>{
-        public void onTaskComplete(T result);
+    @Override
+    protected void onSaveInstanceState(Bundle outstate){
+        super.onSaveInstanceState(outstate);
+        mPosition = new int[]{mScroll.getScrollX(),mScroll.getScrollY()};
+        outstate.putIntArray(SCROLL_POSITION,mPosition);
+    }
+
+    //This is called after the Async Tasks have completed rather than in onRestoreInstanceState
+    //because onRestoreInstanceState fires before the recyclerViews have completed loading and thus
+    //doesn't scroll because there's nowhere to scroll yet.
+    //
+    //Though, it does mean each time the screen is rotated, I'm making an extraneous network call.
+    //TODO convert Trailer and Review objects to Parcelable and pass them to the bundle
+    // during rotation to avoid extra network calls.  Possibly move set scroll position back to
+    //onRestoreInstanceState.
+    private void setScrollPosition(){
+        if (mPosition != null){
+            mScroll.post(new Runnable() {
+                @Override
+                public void run() {
+                    mScroll.scrollTo(mPosition[0],mPosition[1]);
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState){
+        super.onRestoreInstanceState(savedInstanceState);
+        mPosition = savedInstanceState.getIntArray(SCROLL_POSITION);
+
     }
 
 }

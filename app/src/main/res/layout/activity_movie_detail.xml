@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/scrollViewDetail"
-    tools:context="com.quantrian.popularmoviesapp.MovieDetail"
+    tools:context="com.quantrian.popularmoviesapp.MovieDetailActivity"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"

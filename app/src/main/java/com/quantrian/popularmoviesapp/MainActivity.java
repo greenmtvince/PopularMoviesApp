@@ -5,7 +5,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Parcelable;
@@ -25,21 +24,22 @@ import android.widget.Toast;
 
 import com.quantrian.popularmoviesapp.adapters.PosterAdapter;
 import com.quantrian.popularmoviesapp.data.MovieContract;
-import com.quantrian.popularmoviesapp.data.MovieDbHelper;
 import com.quantrian.popularmoviesapp.models.Movie;
 import com.quantrian.popularmoviesapp.data.SettingsActivity;
+import com.quantrian.popularmoviesapp.utils.FetchFavorites;
 import com.quantrian.popularmoviesapp.utils.FetchMovies;
+import com.quantrian.popularmoviesapp.utils.GridAutofitLayoutManager;
+import com.quantrian.popularmoviesapp.utils.TaskCompleteListener;
 
 import java.util.ArrayList;
 
-public class MainActivity extends AppCompatActivity implements android.support.v4.app.LoaderManager.LoaderCallbacks<Cursor> {
+public class MainActivity extends AppCompatActivity {
     private static final String MOVIELIST_KEY = "movielist";
     private static final String SAVED_LAYOUT_MANAGER = "layout_manager";
     private String sortBy;
     private ArrayList<Movie> movieList;
     private RecyclerView mRecyclerView;
 
-    //private SQLiteDatabase mDb;
     private static final String TAG = MainActivity.class.getSimpleName();
     private Parcelable layoutManagerSavedState;
 
@@ -49,27 +49,13 @@ public class MainActivity extends AppCompatActivity implements android.support.v
         setContentView(R.layout.activity_main);
         mRecyclerView = findViewById(R.id.main_recycler_view);
 
-        //Make the layout adaptable to landscape or portrait.
-        //I should do an additional check for larger screen formats and allocate more columns.
-        int spanCount;
-        if (getResources().getConfiguration().orientation== Configuration.ORIENTATION_PORTRAIT)
-            spanCount=2;
-        else
-            spanCount=3;
-
         //Quick call to shared preferences to determine whether we're sorting by highest rated,
         // most popular, or favorites.
         setupSharedPreferences();
 
-        //Initialize the SQLite Database
-        //MovieDbHelper dbHelper = new MovieDbHelper(this);
-        //mDb = dbHelper.getWritableDatabase();
-
-        //Initialize our RecyclerView
-        RecyclerView.LayoutManager layoutManager = new GridLayoutManager(getApplicationContext(),spanCount);
-
-        //if (savedInstanceState==null)
-            mRecyclerView.setLayoutManager(layoutManager);
+        //Initialize our RecyclerView using an Autofit manager to determine columnspan
+        GridAutofitLayoutManager layoutManager = new GridAutofitLayoutManager(this, getResources().getInteger(R.integer.columnWidth));
+        mRecyclerView.setLayoutManager(layoutManager);
 
         //This saves a network call if we're just flipping orientation.
         //Basically it checks if we have a saved instance state which is the movie list and if
@@ -83,7 +69,8 @@ public class MainActivity extends AppCompatActivity implements android.support.v
             }
         }else if (sortBy.equals(getString(R.string.pref_sort_value_favorites))){
             //Get our favorite movies from the content provider
-            getSupportLoaderManager().initLoader(0,null, this);
+            //getSupportLoaderManager().initLoader(0,null, this);
+            new FetchFavorites(this, new FetchMovieTaskCompleteListener()).execute();
         } else {
             loadMovieData(this);
         }
@@ -99,12 +86,10 @@ public class MainActivity extends AppCompatActivity implements android.support.v
         outstate.putParcelable(SAVED_LAYOUT_MANAGER, mRecyclerView.getLayoutManager().onSaveInstanceState());
     }
 
-    //
     @Override
     protected void onRestoreInstanceState(Bundle state){
         if (state !=null){
             layoutManagerSavedState = state.getParcelable(SAVED_LAYOUT_MANAGER);
-            //mRecyclerView.getLayoutManager().onRestoreInstanceState(layoutManagerSavedState);
         }
         super.onRestoreInstanceState(state);
     }
@@ -118,7 +103,8 @@ public class MainActivity extends AppCompatActivity implements android.support.v
 
         setupSharedPreferences();
         if (sortBy.equals(getString(R.string.pref_sort_value_favorites))) {
-            getSupportLoaderManager().restartLoader(0,null, this);
+            //getSupportLoaderManager().restartLoader(0,null, this);
+            new FetchFavorites(this, new FetchMovieTaskCompleteListener()).execute();
         } else {
             loadMovieData(this);
         }
@@ -126,6 +112,8 @@ public class MainActivity extends AppCompatActivity implements android.support.v
 
     //Checks to see if we're connected to the internet and if so calls the AsyncTask
     //Otherwise displays a Toast that the app isn't connected.
+    //TODO Implement a broadcast reciever to detect connectivity status changes
+    //https://www.androidhive.info/2012/07/android-detect-internet-connection-status/
     private void loadMovieData(Context context) {
         ConnectivityManager cm =
                 (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -148,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements android.support.v
             @Override
             public void onItemClick(View view, int position) {
                 Movie movie = movieList.get(position);
-                Intent i=new Intent(getApplicationContext(),MovieDetail.class);
+                Intent i=new Intent(getApplicationContext(),MovieDetailActivity.class);
                 i.putExtra("MOVIE",movie);
                 startActivity(i);
             }
@@ -185,94 +173,13 @@ public class MainActivity extends AppCompatActivity implements android.support.v
     private void setupSharedPreferences() {
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         sortBy = sharedPreferences.getString(getString(R.string.pref_sort_key),getString(R.string.pref_sort_value_popular));
-        //Log.d("PREFFOES", "setupSharedPreferences: "+sortBy);
     }
 
-    //This code is modified from ud851-Lesson09 to-do-list
-    //Should I be concerned about the IDE flag for memory leak?
-    @Override
-    public Loader<Cursor> onCreateLoader(int i, Bundle bundle) {
-        return  new AsyncTaskLoader<Cursor>(this) {
-            Cursor mTaskData=null;
-
-            //Code from ud851-Lesson09-To_do-List
-            @Override
-            protected void onStartLoading() {
-                if (mTaskData != null) {
-                    // Delivers any previously loaded data immediately
-                    deliverResult(mTaskData);
-                } else {
-                    // Force a new load
-                    forceLoad();
-                }
-            }
-
-            @Override
-            public Cursor loadInBackground() {
-                Log.d("ASYNCLOAD", "Starting loadInBackground");
-                try{
-                    return getContentResolver().query(MovieContract.MovieEntry.CONTENT_URI,
-                            null,
-                            null,
-                            null,
-                            MovieContract.MovieEntry.COLUMN_RATING);
-                } catch (Exception e){
-                    Log.e(TAG, "Failed to Asynchronously Load Data.");
-                    e.printStackTrace();
-                    return null;
-                }
-            }
-
-            public void deliverResult(Cursor data){
-                Integer result = data.getCount();
-                Log.d("ASYNCLOAD", "The cursor has "+result.toString()+" items in it");
-                mTaskData = data;
-                super.deliverResult(data);
-            }
-        };
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        movieList = getAllFavorites(data);
-        setAdapter();
-    }
-
-    //TODO Need to resolve this?
-    //I feel like I should add some code here, but I'm not sure what.
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-
-    }
-
-    public class FetchMovieTaskCompleteListener implements MovieDetail.AsyncTaskCompleteListener<ArrayList<Movie>> {
+    public class FetchMovieTaskCompleteListener implements TaskCompleteListener<ArrayList<Movie>> {
         @Override
         public void onTaskComplete(ArrayList<Movie> result){
             movieList = result;
             setAdapter();
         }
-    }
-
-    //Gets all the users favorite movies for use in the adapter.
-    private ArrayList<Movie> getAllFavorites(Cursor c){
-        ArrayList<Movie> favMovies = new ArrayList<>();
-
-        if(c.moveToFirst()){
-          while (!c.isAfterLast()){
-              String title = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE));
-              String id = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_ID));
-              String url = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_URL));
-              String synopsis = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_SYNOPSIS));
-              Float popularity = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_POPULARITY));
-              Float rating = c.getFloat(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RATING));
-              String date = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_DATE));
-
-              Movie m = new Movie(title,url,synopsis,popularity.toString(),rating.toString(),date,id);
-              m.favorite = true;
-              favMovies.add(m);
-              c.moveToNext();
-          }
-        }
-        return  favMovies;
     }
 }
