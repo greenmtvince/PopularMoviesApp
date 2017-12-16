@@ -5,6 +5,7 @@
     <string name="label_release_date">Release Date: </string>
     <string name="title_activity_settings">Settings</string>
     <string name="label_review_author">Author: </string>
+    <string name="toast_no_network">Not Connected to the internet</string>
 
     <!--Preference Strings -->
     <string name="pref_sort_lbl">Sort by: </string>

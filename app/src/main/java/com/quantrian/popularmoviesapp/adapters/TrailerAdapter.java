@@ -56,7 +56,7 @@ public class TrailerAdapter  extends RecyclerView.Adapter<TrailerAdapter.ViewHol
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         ArrayList<Trailer> trailerList = trailers;
-        Picasso.with(context).load(trailerList.get(position).trailerThumbURL).into(holder.imageView);
+        Picasso.with(context).load(trailerList.get(position).trailerThumbUri).into(holder.imageView);
         holder.textView.setText(trailerList.get(position).name);
     }
 

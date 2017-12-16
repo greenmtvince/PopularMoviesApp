@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Parcelable;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
@@ -33,12 +34,14 @@ import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity implements android.support.v4.app.LoaderManager.LoaderCallbacks<Cursor> {
     private static final String MOVIELIST_KEY = "movielist";
+    private static final String SAVED_LAYOUT_MANAGER = "layout_manager";
     private String sortBy;
     private ArrayList<Movie> movieList;
     private RecyclerView mRecyclerView;
 
     //private SQLiteDatabase mDb;
     private static final String TAG = MainActivity.class.getSimpleName();
+    private Parcelable layoutManagerSavedState;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,7 +67,9 @@ public class MainActivity extends AppCompatActivity implements android.support.v
 
         //Initialize our RecyclerView
         RecyclerView.LayoutManager layoutManager = new GridLayoutManager(getApplicationContext(),spanCount);
-        mRecyclerView.setLayoutManager(layoutManager);
+
+        //if (savedInstanceState==null)
+            mRecyclerView.setLayoutManager(layoutManager);
 
         //This saves a network call if we're just flipping orientation.
         //Basically it checks if we have a saved instance state which is the movie list and if
@@ -85,11 +90,23 @@ public class MainActivity extends AppCompatActivity implements android.support.v
     }
 
     //Puts our ArrayList<Movie> movieList into a parcelableArray
+    //Also stores our layout manager to save the scroll state
     @Override
     protected void onSaveInstanceState(Bundle outstate){
         super.onSaveInstanceState(outstate);
         if (movieList!=null)
             outstate.putParcelableArrayList(MOVIELIST_KEY,movieList);
+        outstate.putParcelable(SAVED_LAYOUT_MANAGER, mRecyclerView.getLayoutManager().onSaveInstanceState());
+    }
+
+    //
+    @Override
+    protected void onRestoreInstanceState(Bundle state){
+        if (state !=null){
+            layoutManagerSavedState = state.getParcelable(SAVED_LAYOUT_MANAGER);
+            //mRecyclerView.getLayoutManager().onRestoreInstanceState(layoutManagerSavedState);
+        }
+        super.onRestoreInstanceState(state);
     }
 
     //Handles if the user navigates to this screen by back button rather than
@@ -137,6 +154,10 @@ public class MainActivity extends AppCompatActivity implements android.support.v
             }
         });
         mRecyclerView.setAdapter(posterAdapter);
+        if (layoutManagerSavedState!=null){
+
+            mRecyclerView.getLayoutManager().onRestoreInstanceState(layoutManagerSavedState);
+        }
     }
 
     //Creates a menu option for the settings activity.

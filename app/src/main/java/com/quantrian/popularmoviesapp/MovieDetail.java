@@ -5,15 +5,12 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -28,7 +25,6 @@ import com.quantrian.popularmoviesapp.adapters.PosterAdapter;
 import com.quantrian.popularmoviesapp.adapters.ReviewAdapter;
 import com.quantrian.popularmoviesapp.adapters.TrailerAdapter;
 import com.quantrian.popularmoviesapp.data.MovieContract;
-import com.quantrian.popularmoviesapp.data.MovieDbHelper;
 import com.quantrian.popularmoviesapp.models.Movie;
 import com.quantrian.popularmoviesapp.models.Review;
 import com.quantrian.popularmoviesapp.models.Trailer;
@@ -50,7 +46,6 @@ public class MovieDetail extends AppCompatActivity {
     private RecyclerView rv_reviews;
     private ArrayList<Trailer> trailerList;
     private ArrayList<Review> reviewList;
-    private SQLiteDatabase mDb;
     private Button btn;
 
     //Very straightforward.  Take the data and populate the fields.
@@ -67,21 +62,16 @@ public class MovieDetail extends AppCompatActivity {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
 
-        //Initialize the SQLite Database
-        MovieDbHelper dbHelper = new MovieDbHelper(this);
-        mDb = dbHelper.getWritableDatabase();
-
-
-
-
         movie = getIntent().getParcelableExtra("MOVIE");
 
         if(findMovie(movie.id)>0)
             movie.favorite=true;
 
+        //Saw the suggestion to use Butterknife here.  I'll have to try that out for in the future
+        //because it looks pretty handy for larger projects!
         mRecyclerView = findViewById(R.id.rv_trailers);
         rv_reviews = findViewById(R.id.rv_reviews);
-        tv_MovieTitle = (TextView) findViewById(R.id.MovieTitle);
+        tv_MovieTitle = findViewById(R.id.MovieTitle);
         iv_MoviePoster = findViewById(R.id.imageViewPoster);
         pb_MovieRating = findViewById(R.id.pb_user_rating);
         tv_MovieRating = findViewById(R.id.tv_user_rating);
@@ -93,13 +83,15 @@ public class MovieDetail extends AppCompatActivity {
             btn.setText("Unfavorite");
 
         tv_MovieTitle.setText(movie.originalTitle);
-        Picasso.with(this).load(movie.moviePosterImageURL).into(iv_MoviePoster);
+        Picasso.with(this)
+                .load(movie.moviePosterImageURL)
+                .placeholder(R.drawable.poster_placeholder)
+                .error(R.drawable.broken_android)
+                .into(iv_MoviePoster);
         pb_MovieRating.setProgress(Math.round(movie.rating*10));
         tv_MovieRating.setText(movie.rating.toString());
         tv_releaseDate.setText(movie.releaseDate);
         tv_synopsis.setText(movie.synopsis);
-
-
 
         RecyclerView.LayoutManager layoutManager = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.HORIZONTAL, false);
         RecyclerView.LayoutManager reviewLayoutMgr = new LinearLayoutManager(getApplicationContext(),LinearLayoutManager.VERTICAL,false);
@@ -124,8 +116,8 @@ public class MovieDetail extends AppCompatActivity {
 
             //Toast.makeText(this, "I got here!",Toast.LENGTH_LONG).show();
 
-        }else {
-            Toast.makeText(this, "Not Connected to the internet",
+        } else {
+            Toast.makeText(this, R.string.toast_no_network,
                     Toast.LENGTH_LONG).show();
         }
     }
@@ -175,9 +167,7 @@ public class MovieDetail extends AppCompatActivity {
             removeMovie(movie.id);
             //Toast.makeText(this, "You removed MovieID= "+movie.id,Toast.LENGTH_SHORT).show();
         }
-
         btn.setText(btnMsg);
-
     }
 
     private String addNewMovie(Movie newMovie){
@@ -204,10 +194,7 @@ public class MovieDetail extends AppCompatActivity {
     }
 
     private long findMovie(String movieID){
-        //Cursor c = mDb.rawQuery("SELECT * FROM "+MovieContract.MovieEntry.TABLE_NAME+
-        //        " WHERE "+MovieContract.MovieEntry.COLUMN_ID+" = "+movieID,null);
         Uri myUri = MovieContract.MovieEntry.CONTENT_URI.buildUpon().appendPath(movieID).build();
-        Log.d("WTFROFLBBQ", "The Uri I built in findMovie is: "+myUri);
 
         Cursor c = getContentResolver().query(
                 myUri,
@@ -216,7 +203,6 @@ public class MovieDetail extends AppCompatActivity {
                 null,
                 null);
             if (c.getCount()>0) {
-                Log.d("WTFROFLBBQ", "Cursor Count in findMovie is: "+c.getCount());
                 c.moveToFirst();
                 return c.getLong(c.getColumnIndex(MovieContract.MovieEntry._ID));
             }
@@ -228,14 +214,10 @@ public class MovieDetail extends AppCompatActivity {
     private void removeMovie(String movieId){
         Uri uri = MovieContract.MovieEntry.CONTENT_URI;
         uri = uri.buildUpon().appendPath(movieId).build();
-
         getContentResolver().delete(uri, null,null);
-
-        //return mDb.delete(MovieContract.MovieEntry.TABLE_NAME, MovieContract.MovieEntry._ID+"="+id,null)>0;
     }
 
     public class FetchReviewTaskCompleteListener implements AsyncTaskCompleteListener<ArrayList<Review>>{
-
         @Override
         public void onTaskComplete(ArrayList<Review> result) {
             reviewList = result;
@@ -254,4 +236,5 @@ public class MovieDetail extends AppCompatActivity {
     public interface AsyncTaskCompleteListener<T>{
         public void onTaskComplete(T result);
     }
+
 }
